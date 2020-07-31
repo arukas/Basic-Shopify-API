@@ -2,12 +2,15 @@
 
 namespace Osiset\BasicShopifyAPI;
 
+use Iterator;
+use Countable;
 use ArrayAccess;
+use JsonSerializable;
 
 /**
  * Response data object for accessing.
  */
-class ResponseAccess implements ArrayAccess
+class ResponseAccess implements ArrayAccess, Iterator, Countable, JsonSerializable
 {
     /**
      * The response data.
@@ -15,6 +18,13 @@ class ResponseAccess implements ArrayAccess
      * @var mixed
      */
     public $container;
+
+    /**
+     * Position of iterator.
+     *
+     * @var int
+     */
+    public $position = 0;
 
     /**
      * Setup resource.
@@ -49,6 +59,14 @@ class ResponseAccess implements ArrayAccess
      */
     public function offsetGet($offset)
     {
+        if ($offset === 'container') {
+            return $this->container;
+        }
+
+        if (is_array($this->container[$offset])) {
+            return new static($this->container[$offset]);
+        }
+
         return $this->container[$offset];
     }
 
@@ -117,6 +135,100 @@ class ResponseAccess implements ArrayAccess
     public function __set($key, $value): void
     {
         $this->container[$key] = $value;
+    }
+
+    /**
+     * Rewind iterator.
+     *
+     * @return void
+     */
+    public function rewind(): void
+    {
+        $this->position = 0;
+    }
+
+    /**
+     * Get current position data.
+     *
+     * @return mixed
+     */
+    public function current()
+    {
+        if (is_array($this->container[$this->position])) {
+            return new static($this->container[$this->position]);
+        }
+        
+        return $this->container[$this->position];
+    }
+
+    /**
+     * Current position.
+     *
+     * @return int
+     */
+    public function key(): int
+    {
+        return $this->position;
+    }
+
+    /**
+     * Move position forward.
+     *
+     * @return void
+     */
+    public function next(): void
+    {
+        ++$this->position;
+    }
+
+    /**
+     * Check if valid iterator.
+     *
+     * @return bool
+     */
+    public function valid(): bool
+    {
+        return isset($this->container[$this->position]);
+    }
+
+    /**
+     * Countable.
+     *
+     * @return int
+     */
+    public function count(): int
+    {
+        return count($this->container);
+    }
+
+    /**
+     * Get keys for the array.
+     *
+     * @return array
+     */
+    public function keys(): array
+    {
+        return array_keys($this->container);
+    }
+
+    /**
+     * Get values for the array.
+     *
+     * @return array
+     */
+    public function values(): array
+    {
+        return array_values($this->container);
+    }
+
+    /**
+     * Return a JSON serializable array.
+     *
+     * @return array
+     */
+    public function jsonSerialize(): array
+    {
+        return $this->container;
     }
 
     /**
